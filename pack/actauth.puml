@@ -1,0 +1,56 @@
+@startuml log
+|User|
+start
+:Open Auth Page;
+:Choose Login or Registration;
+
+|Client|
+if (Login or Register?) then (Login)
+    :Show Login Form;
+else (Register)
+    :Show Registration Form;
+endif
+
+|User|
+:Input Credentials;
+
+|Client|
+if (Login?) then (Existing user?)
+    |Server|
+    :Check Credentials;
+    |Database|
+    :Validate User;
+
+    if (Valid?) then (Success)
+        if (2FA Enabled?) then (Yes)
+            |Client|
+            :Show 2FA Form;
+            :Input 2FA Code;
+            |Server|
+            :Verify 2FA Code;
+            if (Code Correct?) then (Yes)
+                :Login Success;
+            else (No)
+                :Invalid 2FA, Retry;
+            endif
+        else (No 2FA)
+            :Login Success;
+        endif
+    else (Invalid)
+        :Return to Login Form;
+    endif
+else (Register)
+    |Server|
+    :Create New User;
+    |Database|
+    :Save User Data;
+    |Client|
+    :Show Confirmation Email Form;
+    |User|
+    :Confirm Email;
+    |Client|
+    :Registration Success;
+endif
+
+stop
+@enduml

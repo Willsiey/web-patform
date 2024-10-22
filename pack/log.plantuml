@@ -1,0 +1,74 @@
+@startuml
+actor User
+participant "Frontend (Client)" as Frontend
+participant "Backend (Server)" as Backend
+participant "Database" as DB
+
+== Авторизация ==
+User -> Frontend: Выбирает "Логин"
+Frontend -> User: Отображает форму логина
+User -> Frontend: Вводит email и пароль
+Frontend -> Frontend: Валидация данных (формат email, длина пароля)
+alt Валидация успешна (Frontend)
+    Frontend -> Backend: Отправляет {email, пароль}
+    Backend -> DB: Проверяет наличие пользователя по {email}
+    alt Пользователь найден
+        Backend -> DB: Запрашивает хэш пароля для {email}
+        DB -> Backend: Возвращает {хэш пароля}
+        Backend -> Backend: Хэширует введенный пароль
+        Backend -> Backend: Сравнивает хэшированную версию пароля
+        alt Хэши совпадают
+            Backend -> Backend: Проверяет, включена ли 2FA
+            alt 2FA включена
+                Backend -> Frontend: Запрос на ввод кода 2FA
+                Frontend -> User: Отображает поле для ввода кода
+                User -> Frontend: Вводит код 2FA {код 2FA}
+                Frontend -> Backend: Отправка {код 2FA}
+                Backend -> Backend: Проверка {код 2FA}
+                alt Код 2FA правильный
+                    Backend -> Backend: Генерация {access token, refresh token}
+                    Backend -> DB: Сохранение {refresh token} в базе данных
+                    Backend -> Frontend: Отправка {access token} на клиент
+                    Frontend -> User: Сохранение {access token} в cookies / localStorage
+                    Frontend -> User: Переход на главную страницу
+                else Код 2FA неправильный
+                    Backend -> Frontend: Ошибка (неправильный код 2FA)
+                    Frontend -> User: Сообщение об ошибке (ввести код повторно)
+                end
+            else 2FA отключена
+                Backend -> Backend: Генерация {access token, refresh token}
+                Backend -> DB: Сохранение {refresh token} в базе данных
+                Backend -> Frontend: Отправка {access token} на клиент
+                Frontend -> User: Сохранение {access token} в cookies / localStorage
+                Frontend -> User: Переход на главную страницу
+            end
+        else Хэши не совпадают
+            Backend -> Frontend: Ошибка авторизации (неправильный пароль)
+            Frontend -> User: Сообщение об ошибке
+        end
+    else Пользователь не найден
+        Backend -> Frontend: Сообщение о том, что пользователя нет
+    end
+else Валидация не пройдена (Frontend)
+    Frontend -> User: Сообщение об ошибке валидации
+end
+
+== Использование токенов ==
+User -> Frontend: Выполняет запрос к защищенному ресурсу
+Frontend -> Backend: Отправляет {access token}
+Backend -> Backend: Проверяет {access token}
+alt Access token действителен
+    Backend -> Frontend: Возвращает данные
+else Access token истек
+    Frontend -> Backend: Отправляет {refresh token}
+    Backend -> DB: Проверяет {refresh token}
+    alt Refresh token действителен
+        Backend -> Backend: Генерация нового {access token}
+        Backend -> Frontend: Отправка нового {access token}
+        Frontend -> User: Обновление токена
+    else Refresh token недействителен
+        Backend -> Frontend: Ошибка (истекла сессия)
+        Frontend -> User: Сообщение об истечении сессии
+    end
+end
+@enduml

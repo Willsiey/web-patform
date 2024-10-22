@@ -1,0 +1,37 @@
+@startuml
+actor User
+participant "MainPage" as MainPage
+participant "RegistrationForm" as RegistrationForm
+participant "ValidationService" as ValidationService
+participant "EmailConfirmationForm" as EmailConfirmationForm
+
+== Переход с главной страницы ==
+User -> MainPage: Находится на главной странице
+MainPage -> User: Отображает кнопку "Авторизация/Регистрация"
+User -> MainPage: Нажимает кнопку "Авторизация/Регистрация"
+MainPage -> RegistrationForm: Перенаправляет на форму регистрации
+RegistrationForm -> User: Отображает форму регистрации
+
+== Регистрация ==
+User -> RegistrationForm: Вводит данные для регистрации (email, пароль)
+RegistrationForm -> ValidationService: Валидация данных (формат email, длина пароля)
+alt Валидация успешна
+    RegistrationForm -> User: Валидация успешна, отправка данных
+    RegistrationForm -> ValidationService: Создание учетной записи
+    ValidationService -> RegistrationForm: Учетная запись создана
+    RegistrationForm -> User: Учетная запись создана, требуется подтверждение email
+    RegistrationForm -> EmailConfirmationForm: Отправка кода подтверждения на email
+    EmailConfirmationForm -> User: Запрос на ввод кода подтверждения
+    User -> EmailConfirmationForm: Вводит код подтверждения email
+    EmailConfirmationForm -> ValidationService: Валидация кода подтверждения
+    alt Код подтверждения корректен
+        EmailConfirmationForm -> User: Email подтвержден
+        RegistrationForm -> User: Переход на главную страницу
+    else Код подтверждения некорректен
+        EmailConfirmationForm -> User: Сообщение об ошибке (ввести код повторно)
+    end
+else Валидация не пройдена
+    ValidationService -> RegistrationForm: Сообщение об ошибке валидации
+    RegistrationForm -> User: Сообщение об ошибке, повторите ввод данных
+end
+@enduml

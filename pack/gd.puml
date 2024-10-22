@@ -1,0 +1,139 @@
+@startuml
+actor User
+participant "Frontend (Client)" as Frontend
+participant "Backend (Server)" as Backend
+participant "Database" as DB
+participant "Social Media" as Social
+participant "Email Service" as Email
+
+== Authorization ==
+User -> Frontend: Selects "Login"
+Frontend -> User: Displays login form
+User -> Frontend: Enters email and password
+Frontend -> Frontend: Validates data (email format, password length)
+alt Validation successful (Frontend)
+    Frontend -> Backend: Sends {email, password}
+    Backend -> DB: Checks user existence by {email}
+    alt User found
+        Backend -> DB: Requests password hash for {email}
+        DB -> Backend: Returns {password hash}
+        Backend -> Backend: Hashes the entered password
+        Backend -> Backend: Compares hashed password
+        alt Hashes match
+            Backend -> Backend: Checks if 2FA is enabled
+            alt 2FA enabled
+                Backend -> Frontend: Request to input 2FA code
+                Frontend -> User: Displays input field for 2FA code
+                User -> Frontend: Enters 2FA code {2FA code}
+                Frontend -> Backend: Sends {2FA code}
+                Backend -> Backend: Verifies {2FA code}
+                alt 2FA code correct
+                    Backend -> Backend: Generates {access token, refresh token}
+                    Backend -> DB: Saves {refresh token} in the database
+                    Backend -> Frontend: Sends {access token} to client
+                    Frontend -> User: Saves {access token} in cookies / localStorage
+                    Frontend -> User: Redirects to the main page
+                else 2FA code incorrect
+                    Backend -> Frontend: Error (incorrect 2FA code)
+                    Frontend -> User: Displays error message (re-enter code)
+                end
+            else 2FA disabled
+                Backend -> Backend: Generates {access token, refresh token}
+                Backend -> DB: Saves {refresh token} in the database
+                Backend -> Frontend: Sends {access token} to client
+                Frontend -> User: Saves {access token} in cookies / localStorage
+                Frontend -> User: Redirects to the main page
+            end
+        else Hashes do not match
+            Backend -> Frontend: Authorization error (incorrect password)
+            Frontend -> User: Displays error message
+        end
+    else User not found
+        Backend -> Frontend: Displays error (user not found)
+    end
+else Validation failed (Frontend)
+    Frontend -> User: Displays validation error message
+end
+
+== Social Media Authorization ==
+User -> Frontend: Selects "Login via Social Media"
+Frontend -> Social: Sends request for authorization {social media platform}
+Social -> Backend: Sends user data {email, social media profile}
+Backend -> DB: Checks user existence by {email}
+alt User found
+    Backend -> Backend: Checks if 2FA is enabled
+    alt 2FA enabled
+        Backend -> Frontend: Request to input 2FA code
+        Frontend -> User: Displays input field for 2FA code
+        User -> Frontend: Enters 2FA code {2FA code}
+        Frontend -> Backend: Sends {2FA code}
+        Backend -> Backend: Verifies {2FA code}
+        alt 2FA code correct
+            Backend -> Backend: Generates {access token, refresh token}
+            Backend -> DB: Saves {refresh token} in the database
+            Backend -> Frontend: Sends {access token} to client
+            Frontend -> User: Saves {access token} in cookies / localStorage
+            Frontend -> User: Redirects to the main page
+        else 2FA code incorrect
+            Backend -> Frontend: Error (incorrect 2FA code)
+            Frontend -> User: Displays error message (re-enter code)
+        end
+    else 2FA disabled
+        Backend -> Backend: Generates {access token, refresh token}
+        Backend -> DB: Saves {refresh token} in the database
+        Backend -> Frontend: Sends {access token} to client
+        Frontend -> User: Saves {access token} in cookies / localStorage
+        Frontend -> User: Redirects to the main page
+    end
+else User not found
+    Backend -> DB: Registers new user with {email, social media profile}
+    Backend -> Backend: Generates {access token, refresh token}
+    Backend -> DB: Saves {refresh token} in the database
+    Backend -> Frontend: Sends {access token} to client
+    Frontend -> User: Saves {access token} in cookies / localStorage
+    Frontend -> User: Redirects to the main page
+end
+
+== Registration ==
+User -> Frontend: Selects "Register"
+Frontend -> User: Displays registration form
+User -> Frontend: Enters registration data {email, password, name, etc.}
+Frontend -> Frontend: Validates data (email format, password length)
+alt Validation successful (Frontend)
+    Frontend -> Backend: Sends {email, password, name, etc.}
+    Backend -> Backend: Hashes password
+    Backend -> DB: Checks if user exists by {email}
+    alt User does not exist
+        Backend -> DB: Creates new user with {email, hashed password, name}
+        Backend -> Email: Sends email confirmation {email}
+        Frontend -> User: Displays message to confirm email
+        User -> Email: Confirms email via link
+        Email -> Backend: Confirms {email, confirmation token}
+        Backend -> Frontend: Registration successful, redirect to login page
+    else User exists
+        Backend -> Frontend: Registration error (user already exists)
+        Frontend -> User: Displays registration error
+    end
+else Validation failed (Frontend)
+    Frontend -> User: Displays validation error message
+end
+
+== Token usage ==
+User -> Frontend: Requests access to a protected resource
+Frontend -> Backend: Sends {access token}
+Backend -> Backend: Verifies {access token}
+alt Access token valid
+    Backend -> Frontend: Returns data
+else Access token expired
+    Frontend -> Backend: Sends {refresh token}
+    Backend -> DB: Verifies {refresh token}
+    alt Refresh token valid
+        Backend -> Backend: Generates new {access token}
+        Backend -> Frontend: Sends new {access token}
+        Frontend -> User: Updates token
+    else Refresh token invalid
+        Backend -> Frontend: Error (session expired)
+        Frontend -> User: Displays session expiration message
+    end
+end
+@enduml

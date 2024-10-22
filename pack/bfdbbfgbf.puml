@@ -1,0 +1,102 @@
+@startuml
+[*] --> Ожидание
+
+state Ожидание {
+    Ожидание --> LoginButtonClicked : Нажата кнопка входа
+    Ожидание --> RegisterButtonClicked : Нажата кнопка регистрации
+    Ожидание --> SocialLoginButtonClicked : Нажата кнопка соц. входа
+    Ожидание --> 2FAButtonClicked : Нажата кнопка 2FA
+}
+
+state LoginButtonClicked {
+    entry / Проверить форму входа
+    do / Отправить запрос авторизации
+    exit / Очистить форму
+    LoginButtonClicked --> Authenticating : Данные отправлены
+}
+
+state RegisterButtonClicked {
+    entry / Проверить форму регистрации
+    do / Отправить запрос регистрации
+    exit / Очистить форму
+    RegisterButtonClicked --> Registering : Данные отправлены
+}
+
+state SocialLoginButtonClicked {
+    entry / Проверить форму соц. входа
+    do / Отправить запрос соц. авторизации
+    exit / Очистить форму
+    SocialLoginButtonClicked --> SocialAuthenticating : Данные отправлены
+}
+
+state 2FAButtonClicked {
+    entry / Проверить форму 2FA
+    do / Отправить запрос 2FA
+    exit / Очистить форму
+    2FAButtonClicked --> Authenticating2FA : Данные отправлены
+}
+
+state LoginForm {
+    do / checkFields()
+    do / sendLoginRequest()
+}
+
+state RegisterForm {
+    do / checkFields()
+    do / sendRegisterRequest()
+}
+
+state SocialLoginForm {
+    do / checkFields()
+    do / sendSocialLoginRequest()
+}
+
+state 2FAForm {
+    do / checkFields()
+    do / send2FARequest()
+}
+
+state Authenticating {
+    entry / Проверка учетных данных
+    do / Выполняется проверка на сервере
+    exit / Закрыть соединение
+    Authenticating --> LoginSuccess : Авторизация успешна
+    Authenticating --> LoginError : Ошибка авторизации
+}
+
+state Registering {
+    entry / Создание учетной записи
+    do / Проверка введенных данных
+    exit / Закрыть соединение
+    Registering --> RegisterSuccess : Регистрация успешна
+    Registering --> RegisterError : Ошибка регистрации
+}
+
+state SocialAuthenticating {
+    entry / Установить соединение с соц. сетью
+    do / Проверка учетных данных через API соц. сети
+    exit / Закрыть соединение
+    SocialAuthenticating --> SocialLoginSuccess : Вход через соц. сеть успешен
+    SocialAuthenticating --> SocialLoginError : Ошибка входа
+}
+
+state Authenticating2FA {
+    entry / Проверка кода 2FA
+    do / Проверка на сервере
+    exit / Закрыть соединение
+    Authenticating2FA --> 2FASuccess : Код принят
+    Authenticating2FA --> 2FAError : Неверный код
+}
+
+LoginSuccess --> [*]
+LoginError --> Ожидание
+
+RegisterSuccess --> [*]
+RegisterError --> Ожидание
+
+SocialLoginSuccess --> [*]
+SocialLoginError --> Ожидание
+
+2FASuccess --> [*]
+2FAError --> Ожидание
+@enduml

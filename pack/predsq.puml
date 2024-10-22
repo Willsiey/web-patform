@@ -1,0 +1,22 @@
+@startuml
+actor User
+participant "CoursePreviewPage" as CoursePreviewPage
+participant "MaterialService" as MaterialService
+participant "PopupWindow" as PopupWindow
+
+== Предпросмотр курса ==
+User -> CoursePreviewPage: Нажимает "Предварительный просмотр курса"
+CoursePreviewPage -> MaterialService: Проверяет наличие доступных материалов
+alt Материалы доступны
+    MaterialService -> CoursePreviewPage: Возвращает доступные материалы
+    CoursePreviewPage -> User: Отображает материалы для просмотра
+    User -> CoursePreviewPage: Просматривает материалы
+    User -> CoursePreviewPage: Достигает конца доступных материалов
+    CoursePreviewPage -> PopupWindow: Отображает всплывающее окно с предложением зарегистрироваться
+    PopupWindow -> User: Просит пользователя зарегистрироваться
+    User -> PopupWindow: Закрывает окно или переходит к регистрации
+else Материалы недоступны
+    MaterialService -> CoursePreviewPage: Материалы не найдены
+    CoursePreviewPage -> User: Выводит сообщение "Материалы не найдены"
+end
+@enduml
